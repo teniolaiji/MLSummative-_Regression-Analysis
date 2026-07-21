@@ -1,22 +1,24 @@
 import joblib
 import numpy as np
+import os
 
-model = joblib.load('API/best_model.pkl')
-scaler = joblib.load('API/scaler.pkl')
-feature_names = joblib.load('API/feature_names.pkl')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model = joblib.load(os.path.join(BASE_DIR, 'best_model.pkl'))
+scaler = joblib.load(os.path.join(BASE_DIR, 'scaler.pkl'))
+feature_names = joblib.load(os.path.join(BASE_DIR, 'feature_names.pkl'))
 
 REGION_COLUMNS = [f for f in feature_names if f.startswith('reg_')]
 
 # Maps a user-facing region name to the dummy column it activates.
 # The baseline region (dropped by drop_first=True) maps to None = all zeros.
 REGION_MAP = {
-    'Europe & Central Asia': 'reg_europe_centralasia',
-    'Latin America & Caribbean': 'reg_latam_caribbean',
-    'Middle East, North Africa, Afghanistan & Pakistan': 'reg_mena',
-    'North America': 'reg_northamerica',
-    'South Asia': 'reg_southasia',
-    'Sub-Saharan Africa': 'reg_subsaharan',
     'East Asia & Pacific': None,   # baseline: all region dummies = 0
+    'Europe & Central Asia': 'reg_europe_and_central_asia',
+    'Latin America & Caribbean': 'reg_latin_america_and_caribbean',
+    'Middle East, North Africa, Afghanistan & Pakistan': 'reg_middle_east_north_africa_afghanistan_and_pakistan',
+    'North America': 'reg_north_america',
+    'South Asia': 'reg_south_asia',
+    'Sub-Saharan Africa': 'reg_sub_saharan_africa',
 }
 
 def predict_poverty(continuous_inputs: dict, region: str):
