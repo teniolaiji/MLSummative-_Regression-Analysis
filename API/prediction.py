@@ -97,6 +97,34 @@ class PredictionInput(BaseModel):
 class PredictionOutput(BaseModel):
     predicted_poverty_ratio: float
 
+
+
+# Prediction logic 
+
+def build_feature_row(data: PredictionInput):
+    row = {
+        'electricity_access': data.electricity_access,
+        'agri_value_added': data.agri_value_added,
+        'health_expenditure': data.health_expenditure,
+        'gdp_growth': data.gdp_growth,
+        'gdp_per_capita': data.gdp_per_capita,
+        'education_expenditure': data.education_expenditure,
+        'internet_users': data.internet_users,
+        'inflation': data.inflation,
+        'life_expectancy': data.life_expectancy,
+        'urban_population': data.urban_population,
+    }
+    # one-hot the region server-side
+    for col in REGION_COLUMNS:
+        row[col] = 0
+    active = REGION_MAP.get(data.region.value)
+    if active is not None:
+        row[active] = 1
+
+    ordered = [row[name] for name in feature_names]
+    return np.array(ordered, dtype=float).reshape(1, -1)
+
+
 # def predict_poverty(continuous_inputs: dict, region: str):
 #     """
 #     continuous_inputs: {feature_name: value} for the non-region features.
