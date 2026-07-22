@@ -28,7 +28,7 @@ REGION_MAP = {
 }
 
 
-# App + CORS 
+# App + CORS
 app = FastAPI(
     title="Poverty Prediction API",
     description="Predicts poverty headcount ratio (% below $3.00/day) from World Development Indicators.",
@@ -37,13 +37,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],         
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
 
 # Region as a vallidated enum
+
 
 class Region(str, Enum):
     east_asia_pacific = 'East Asia & Pacific'
@@ -53,6 +54,48 @@ class Region(str, Enum):
     north_america = 'North America'
     south_asia = 'South Asia'
     sub_saharan_africa = 'Sub-Saharan Africa'
+
+
+# Input schema: types + realistic range constraints
+
+class PredictionInput(BaseModel):
+    electricity_access: float = Field(..., ge=0, le=100,
+                                      description="% of population with electricity")
+    agri_value_added: float = Field(..., ge=0,
+                                    le=100, description="Agriculture as % of GDP")
+    health_expenditure: float = Field(..., ge=0, le=100,
+                                      description="Health spending as % of GDP")
+    gdp_growth: float = Field(..., ge=-50, le=50,
+                              description="Annual GDP growth %")
+    gdp_per_capita: float = Field(..., ge=0, le=200000,
+                                  description="GDP per capita (current US$)")
+    education_expenditure: float = Field(..., ge=0, le=100,
+                                         description="Education spending as % of GDP")
+    internet_users: float = Field(..., ge=0, le=100,
+                                  description="% of population using the internet")
+    inflation: float = Field(..., ge=-10, le=100,
+                             description="Annual inflation %")
+    life_expectancy: float = Field(..., ge=20, le=90,
+                                   description="Life expectancy at birth (years)")
+    urban_population: float = Field(..., ge=0, le=100,
+                                    description="% of population in urban areas")
+    region: Region = Field(..., description="World Bank region")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "electricity_access": 45.0, "agri_value_added": 25.0,
+                "health_expenditure": 5.0, "gdp_growth": 3.0,
+                "gdp_per_capita": 800.0, "education_expenditure": 4.0,
+                "internet_users": 20.0, "inflation": 8.0,
+                "life_expectancy": 60.0, "urban_population": 35.0,
+                "region": "Sub-Saharan Africa"
+            }
+        }
+
+
+class PredictionOutput(BaseModel):
+    predicted_poverty_ratio: float
 
 # def predict_poverty(continuous_inputs: dict, region: str):
 #     """
