@@ -125,6 +125,23 @@ def build_feature_row(data: PredictionInput):
     return np.array(ordered, dtype=float).reshape(1, -1)
 
 
+# Endpoints
+
+def root():
+    return {"message": "Poverty Prediction API. Visit /docs for Swagger UI."}
+
+@app.post("/predict", response_model=PredictionOutput)
+def predict(data: PredictionInput):
+    try:
+        X_new = build_feature_row(data)
+        X_scaled = scaler.transform(X_new)
+        prediction = float(model.predict(X_scaled)[0])
+        return PredictionOutput(predicted_poverty_ratio=round(prediction, 2))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+    
+
+    
 # def predict_poverty(continuous_inputs: dict, region: str):
 #     """
 #     continuous_inputs: {feature_name: value} for the non-region features.
