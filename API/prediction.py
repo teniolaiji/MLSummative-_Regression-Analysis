@@ -1,6 +1,12 @@
+import os
 import joblib
 import numpy as np
-import os
+import pandas as pd
+from enum import Enum
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model = joblib.load(os.path.join(BASE_DIR, 'best_model.pkl'))
@@ -21,33 +27,52 @@ REGION_MAP = {
     'Sub-Saharan Africa': 'reg_sub_saharan_africa',
 }
 
-def predict_poverty(continuous_inputs: dict, region: str):
-    """
-    continuous_inputs: {feature_name: value} for the non-region features.
-    region: one region string from REGION_MAP.
-    Returns predicted poverty ratio (% below $3.00/day).
-    """
-    row = dict(continuous_inputs)
 
-    for col in REGION_COLUMNS:
-        row[col] = 0
-    active = REGION_MAP.get(region)
-    if active is not None:
-        row[active] = 1
+# App + CORS 
+app = FastAPI(
+    title="Poverty Prediction API",
+    description="Predicts poverty headcount ratio (% below $3.00/day) from World Development Indicators.",
+    version="1.0.0",
+)
 
-    ordered = [row[name] for name in feature_names]
-    X_new = np.array(ordered, dtype=float).reshape(1, -1)
-    X_scaled = scaler.transform(X_new)
-
-    return round(float(model.predict(X_scaled)[0]), 2)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],         
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
-if __name__ == '__main__':
-    example = {
-        'electricity_access': 45.0, 'agri_value_added': 25.0,
-        'health_expenditure': 5.0, 'gdp_growth': 3.0,
-        'gdp_per_capita': 800.0, 'education_expenditure': 4.0,
-        'internet_users': 20.0, 'inflation': 8.0,
-        'life_expectancy': 60.0, 'urban_population': 35.0,
-    }
-    print(predict_poverty(example, 'Sub-Saharan Africa'))
+
+
+# def predict_poverty(continuous_inputs: dict, region: str):
+#     """
+#     continuous_inputs: {feature_name: value} for the non-region features.
+#     region: one region string from REGION_MAP.
+#     Returns predicted poverty ratio (% below $3.00/day).
+#     """
+#     row = dict(continuous_inputs)
+
+#     for col in REGION_COLUMNS:
+#         row[col] = 0
+#     active = REGION_MAP.get(region)
+#     if active is not None:
+#         row[active] = 1
+
+#     ordered = [row[name] for name in feature_names]
+#     X_new = np.array(ordered, dtype=float).reshape(1, -1)
+#     X_scaled = scaler.transform(X_new)
+
+#     return round(float(model.predict(X_scaled)[0]), 2)
+
+
+# if __name__ == '__main__':
+#     example = {
+#         'electricity_access': 45.0, 'agri_value_added': 25.0,
+#         'health_expenditure': 5.0, 'gdp_growth': 3.0,
+#         'gdp_per_capita': 800.0, 'education_expenditure': 4.0,
+#         'internet_users': 20.0, 'inflation': 8.0,
+#         'life_expectancy': 60.0, 'urban_population': 35.0,
+#     }
+#     print(predict_poverty(example, 'Sub-Saharan Africa'))
