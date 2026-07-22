@@ -43,8 +43,16 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+# Region as a vallidated enum
 
-
+class Region(str, Enum):
+    east_asia_pacific = 'East Asia & Pacific'
+    europe_central_asia = 'Europe & Central Asia'
+    latin_america_caribbean = 'Latin America & Caribbean'
+    middle_east_north_africa = 'Middle East, North Africa, Afghanistan & Pakistan'
+    north_america = 'North America'
+    south_asia = 'South Asia'
+    sub_saharan_africa = 'Sub-Saharan Africa'
 
 # def predict_poverty(continuous_inputs: dict, region: str):
 #     """
