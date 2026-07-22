@@ -6,6 +6,13 @@ from enum import Enum
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from fastapi import File, UploadFile
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+import io
+
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -141,7 +148,62 @@ def predict(data: PredictionInput):
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
     
 
-    
+@app.post("/retrain")
+async def retrain(file: UploadFile = File(...)):
+    """
+    Upload a CSV of new data to retrain the model.
+    The CSV must contain the same feature columns used in training,
+    plus the target column 'poverty_ratio'.
+    """
+    global model, scaler   # replace the in-memory model with the retrained one
+
+    # Only accept CSV files
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Please upload a .csv file.")
+
+    try:
+        contents = await file.read()
+        new_df = pd.read_csv(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not read CSV: {str(e)}")
+
+    # Check the required columns are present
+    required = feature_names + ['poverty_ratio']
+    missing = [c for c in required if c not in new_df.columns]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV is missing required columns: {missing}"
+        )
+
+    # Prepare data
+    X = new_df[feature_names]
+    y = new_df['poverty_ratio']
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Refit scaler + model on the new data
+    new_scaler = StandardScaler().fit(X_train)
+    new_model = RandomForestRegressor(random_state=42)
+    new_model.fit(new_scaler.transform(X_train), y_train)
+
+    # Evaluate
+    preds = new_model.predict(new_scaler.transform(X_test))
+    new_rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+
+    # Swap in the new model and persist to disk
+    model = new_model
+    scaler = new_scaler
+    joblib.dump(model, os.path.join(BASE_DIR, 'best_model.pkl'))
+    joblib.dump(scaler, os.path.join(BASE_DIR, 'scaler.pkl'))
+
+    return {
+        "message": "Model retrained successfully.",
+        "rows_used": len(new_df),
+        "new_rmse": round(new_rmse, 3)
+    }
+
 # def predict_poverty(continuous_inputs: dict, region: str):
 #     """
 #     continuous_inputs: {feature_name: value} for the non-region features.
