@@ -14,7 +14,6 @@ from sklearn.metrics import mean_squared_error
 import io
 
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model = joblib.load(os.path.join(BASE_DIR, 'best_model.pkl'))
 scaler = joblib.load(os.path.join(BASE_DIR, 'scaler.pkl'))
@@ -41,10 +40,17 @@ app = FastAPI(
     description="Predicts poverty headcount ratio (% below $3.00/day) from World Development Indicators.",
     version="1.0.0",
 )
+# CORS: restricted to known origins rather than wildcard "*"
+
+origins = [
+    "https://mlsummative-regression-analysis.onrender.com",  # Swagger UI / deployed API
+    "http://localhost",
+    "http://localhost:8080",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
@@ -105,8 +111,7 @@ class PredictionOutput(BaseModel):
     predicted_poverty_ratio: float
 
 
-
-# Prediction logic 
+# Prediction logic
 
 def build_feature_row(data: PredictionInput):
     row = {
@@ -137,6 +142,10 @@ def build_feature_row(data: PredictionInput):
 def root():
     return {"message": "Poverty Prediction API. Visit /docs for Swagger UI."}
 
+@app.get("/")
+def root():
+    return {"message": "Poverty Prediction API. Visit /docs for Swagger UI."}
+
 @app.post("/predict", response_model=PredictionOutput)
 def predict(data: PredictionInput):
     try:
@@ -145,8 +154,9 @@ def predict(data: PredictionInput):
         prediction = float(model.predict(X_scaled)[0])
         return PredictionOutput(predicted_poverty_ratio=round(prediction, 2))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-    
+        raise HTTPException(
+            status_code=500, detail=f"Prediction failed: {str(e)}")
+
 
 @app.post("/retrain")
 async def retrain(file: UploadFile = File(...)):
@@ -159,13 +169,15 @@ async def retrain(file: UploadFile = File(...)):
 
     # Only accept CSV files
     if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Please upload a .csv file.")
+        raise HTTPException(
+            status_code=400, detail="Please upload a .csv file.")
 
     try:
         contents = await file.read()
         new_df = pd.read_csv(io.BytesIO(contents))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Could not read CSV: {str(e)}")
+        raise HTTPException(
+            status_code=400, detail=f"Could not read CSV: {str(e)}")
 
     # Check the required columns are present
     required = feature_names + ['poverty_ratio']
