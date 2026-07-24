@@ -12,6 +12,10 @@ Poverty persists across developing nations, yet the factors driving it are usual
 
 **Target:** Poverty headcount ratio at $3.00 a day (2021 PPP), percentage of population.
 
+## Video Demo
+
+_https://youtu.be/8G7aTfCaep4?si=T8yq6QrFQwLRBv0j_
+
 ### Data preparation
 
 | Step | Decision | Reasoning |
@@ -84,9 +88,7 @@ Four models were trained and compared on test-set loss.
 
 > The free Render tier sleeps after inactivity. The first request may take 30 to 60 seconds while the service wakes.
 
-## Video Demo
 
-_[YouTube link]_
 
 ## Setup
 
