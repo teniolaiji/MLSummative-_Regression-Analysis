@@ -31,15 +31,20 @@ Poverty persists across developing nations, yet the factors driving it are usual
 
 Electricity access is the strongest predictor at **-0.87**, followed by life expectancy at **-0.77**. Agricultural share of GDP is the strongest positive signal at **+0.72**. Poverty therefore tracks basic infrastructure and economic structure far more closely than headline GDP per capita (-0.38). Several predictors also correlate strongly with one another, life expectancy against electricity access at +0.77, indicating multicollinearity that a linear model handles poorly.
 
-### Poverty by income group
-![Poverty by income group](linear_regression/images/poverty_by_income.png)
-
-Poverty rises sharply as income group falls, from near zero in high-income countries to a median around 60% in low-income ones.
-
-### Target and predictor distributions
+### Poverty against the strongest predictor
+![Best fit line](linear_regression/images/best_fit_line.png)
+ 
+Electricity access alone traces a clear downward relationship with poverty, and the fitted line shows the trend a linear model captures. The spread around that line is what the tree-based models exploit: the relationship is directional but not tidy, especially at high access levels where poverty ranges from near zero to well above it.
+ 
+### Target distribution
 ![Target distribution](linear_regression/images/target_distribution.png)
-
-The target is heavily right-skewed: most country-years cluster at low poverty with a long tail toward severe poverty. The top predictors sit on very different scales, which is why standardisation is applied before training.
+ 
+The target is heavily right-skewed. Most country-years cluster at low poverty with a long tail toward severe poverty, which means a linear model fitted on the raw target will be pulled by the tail and is one reason the tree ensemble performs better.
+ 
+### Predictor distributions
+![Predictor distributions](linear_regression/images/predictor_distributions.png)
+ 
+The three strongest predictors sit on very different scales and shapes: electricity access piles up near 100%, life expectancy is roughly bell-shaped around 70 to 80 years, and agricultural share is right-skewed. Standardisation is applied before training so no feature dominates purely because its raw numbers are larger.
 
 ## Models
 
