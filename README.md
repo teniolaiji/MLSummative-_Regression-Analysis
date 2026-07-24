@@ -57,10 +57,10 @@ Four models were trained and compared on test-set loss.
 
 | Model | MSE | RMSE |
 |---|---|---|
-| Random Forest | _19.289_ | _[fill in]_ |
-| Linear Regression (closed form) | _[fill in]_ | _[fill in]_ |
-| Linear Regression (SGD) | _[fill in]_ | _[fill in]_ |
-| Decision Tree | _[fill in]_ | _[fill in]_ |
+| Random Forest | _19.289_ | _4.392_ |
+| Linear Regression (closed form) | _36.142_ | _6.012_ |
+| Linear Regression (SGD) | _39.281_ | _6.267_ |
+| Decision Tree | _[48.401_ | _6.957_ |
 
 **Selection criterion:** lowest root mean squared error on the held-out test set.
 
