@@ -57,7 +57,7 @@ Four models were trained and compared on test-set loss.
 
 | Model | MSE | RMSE |
 |---|---|---|
-| Random Forest | _[fill in]_ | _[fill in]_ |
+| Random Forest | _19.289_ | _[fill in]_ |
 | Linear Regression (closed form) | _[fill in]_ | _[fill in]_ |
 | Linear Regression (SGD) | _[fill in]_ | _[fill in]_ |
 | Decision Tree | _[fill in]_ | _[fill in]_ |
