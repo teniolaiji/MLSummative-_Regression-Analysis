@@ -46,7 +46,10 @@ The target is heavily right-skewed. Most country-years cluster at low poverty wi
  
 The three strongest predictors sit on very different scales and shapes: electricity access piles up near 100%, life expectancy is roughly bell-shaped around 70 to 80 years, and agricultural share is right-skewed. Standardisation is applied before training so no feature dominates purely because its raw numbers are larger.
 
+## Model Comparison
 ![Model comparison](linear_regression/images/model_comparison.png)
+
+## Loss Curve
 ![Loss curve](linear_regression/images/loss_curve.png)
 ## Models
 
