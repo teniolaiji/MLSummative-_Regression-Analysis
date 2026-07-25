@@ -12,6 +12,10 @@ Poverty persists across developing nations, yet the factors driving it are usual
 
 **Target:** Poverty headcount ratio at $3.00 a day (2021 PPP), percentage of population.
 
+## Video Demo
+
+_https://youtu.be/8G7aTfCaep4?si=T8yq6QrFQwLRBv0j_
+
 ### Data preparation
 
 | Step | Decision | Reasoning |
@@ -46,16 +50,21 @@ The target is heavily right-skewed. Most country-years cluster at low poverty wi
  
 The three strongest predictors sit on very different scales and shapes: electricity access piles up near 100%, life expectancy is roughly bell-shaped around 70 to 80 years, and agricultural share is right-skewed. Standardisation is applied before training so no feature dominates purely because its raw numbers are larger.
 
+## Model Comparison
+![Model comparison](linear_regression/images/model_comparison.png)
+
+## Loss Curve
+![Loss curve](linear_regression/images/loss_curve.png)
 ## Models
 
 Four models were trained and compared on test-set loss.
 
 | Model | MSE | RMSE |
 |---|---|---|
-| Random Forest | _[fill in]_ | _[fill in]_ |
-| Linear Regression (closed form) | _[fill in]_ | _[fill in]_ |
-| Linear Regression (SGD) | _[fill in]_ | _[fill in]_ |
-| Decision Tree | _[fill in]_ | _[fill in]_ |
+| Random Forest | _19.289_ | _4.392_ |
+| Linear Regression (closed form) | _36.142_ | _6.012_ |
+| Linear Regression (SGD) | _39.281_ | _6.267_ |
+| Decision Tree | _48.401_ | _6.957_ |
 
 **Selection criterion:** lowest root mean squared error on the held-out test set.
 
@@ -79,9 +88,7 @@ Four models were trained and compared on test-set loss.
 
 > The free Render tier sleeps after inactivity. The first request may take 30 to 60 seconds while the service wakes.
 
-## Video Demo
 
-_[YouTube link]_
 
 ## Setup
 
