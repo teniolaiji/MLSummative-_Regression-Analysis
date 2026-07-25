@@ -2,7 +2,7 @@
 
 ## Mission and Problem
 
-Poverty persists across developing nations, yet the factors driving it are usually measured in isolation rather than together. This project models the poverty headcount ratio, the share of a population living below $3.00 a day, against economic, health, and infrastructure indicators. By quantifying which factors move poverty most, the model shows where intervention carries the greatest weight. The result is a deployed tool that predicts poverty levels from a country's development profile.
+Knowing what causes poverty is essential to effective anti-poverty policy, yet, decision-makers don't always have a fast method for estimating poverty. This project uses machine learning for governance; it projects the poverty headcount ratio of a populous, and the percentage of people living below the $3.00 a day poverty line, based on economic, health and infrastructure indicators. When used to display the most important factors, it can help guide interventions for where they are needed. The outcome is a tool that is deployed and starts to alert to evidence based policy.
 
 ## Dataset
 
