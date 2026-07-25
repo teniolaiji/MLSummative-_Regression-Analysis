@@ -80,7 +80,12 @@ Four models were trained and compared on test-set loss.
 |---|---|---|
 | `/` | GET | Service check |
 | `/predict` | POST | Returns a predicted poverty ratio from eleven inputs |
-| `/retrain` | POST | Accepts a CSV upload and retrains the deployed model |
+| `/retrain` | POST | Accepts a CSV upload and retrains the deployed model immediately (manual bulk path) |
+| `/data` | POST | Accepts one new labelled observation (the eleven predict inputs plus the actual `poverty_ratio`). Rows accumulate in a buffer on disk; once 5 rows have arrived the model retrains automatically and the buffer clears, with no manual `/retrain` call needed |
+
+**Auto-retraining:** `/retrain` still exists for bulk, on-demand retraining from a historical CSV, but `/data` is the reactive path: the API itself decides when enough new evidence has accumulated and retrains without a human triggering it. The threshold (`RETRAIN_THRESHOLD` in `prediction.py`) is set low for demo purposes; a production deployment would raise it.
+
+> Render's free tier uses an ephemeral filesystem: anything written at runtime (the retrain buffer, a freshly retrained `.pkl`) is lost on the next redeploy or restart. For durability beyond a single deployment's lifetime, the buffer and model artefacts would need to move to persistent storage (e.g. a database or object store) rather than local disk.
 
 **Validation:** every numeric input has an enforced type and a realistic range defined with Pydantic `Field` constraints (percentages bounded 0 to 100, inflation and GDP growth permitted to go negative, life expectancy bounded 20 to 90). Region is an enum, so only the seven valid World Bank regions are accepted. The API converts the region string into one-hot columns server-side, so callers never handle the encoding.
 

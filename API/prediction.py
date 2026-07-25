@@ -19,6 +19,10 @@ model = joblib.load(os.path.join(BASE_DIR, 'best_model.pkl'))
 scaler = joblib.load(os.path.join(BASE_DIR, 'scaler.pkl'))
 feature_names = joblib.load(os.path.join(BASE_DIR, 'feature_names.pkl'))
 
+BUFFER_PATH = os.path.join(BASE_DIR, 'new_data_buffer.csv')
+# Kept small so the auto-retrain path is easy to demo; raise for production.
+RETRAIN_THRESHOLD = 5
+
 REGION_COLUMNS = [f for f in feature_names if f.startswith('reg_')]
 
 # Maps a user-facing region name to the dummy column it activates.
@@ -113,7 +117,7 @@ class PredictionOutput(BaseModel):
 
 # Prediction logic
 
-def build_feature_row(data: PredictionInput):
+def build_feature_dict(data: PredictionInput):
     row = {
         'electricity_access': data.electricity_access,
         'agri_value_added': data.agri_value_added,
@@ -132,15 +136,49 @@ def build_feature_row(data: PredictionInput):
     active = REGION_MAP.get(data.region.value)
     if active is not None:
         row[active] = 1
+    return row
 
+
+def build_feature_row(data: PredictionInput):
+    row = build_feature_dict(data)
     ordered = [row[name] for name in feature_names]
     return np.array(ordered, dtype=float).reshape(1, -1)
 
 
-# Endpoints
+def retrain_model(df: pd.DataFrame):
+    """Refit scaler + model on df, persist both, and swap them into the running app."""
+    global model, scaler
 
-def root():
-    return {"message": "Poverty Prediction API. Visit /docs for Swagger UI."}
+    required = feature_names + ['poverty_ratio']
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Data is missing required columns: {missing}"
+        )
+
+    X = df[feature_names]
+    y = df['poverty_ratio']
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    new_scaler = StandardScaler().fit(X_train)
+    new_model = RandomForestRegressor(random_state=42)
+    new_model.fit(new_scaler.transform(X_train), y_train)
+
+    preds = new_model.predict(new_scaler.transform(X_test))
+    new_rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+
+    model = new_model
+    scaler = new_scaler
+    joblib.dump(model, os.path.join(BASE_DIR, 'best_model.pkl'))
+    joblib.dump(scaler, os.path.join(BASE_DIR, 'scaler.pkl'))
+
+    return {"rows_used": len(df), "new_rmse": round(new_rmse, 3)}
+
+
+# Endpoints
 
 @app.get("/")
 def root():
@@ -161,13 +199,12 @@ def predict(data: PredictionInput):
 @app.post("/retrain")
 async def retrain(file: UploadFile = File(...)):
     """
-    Upload a CSV of new data to retrain the model.
+    Upload a CSV of historical data to retrain the model immediately.
     The CSV must contain the same feature columns used in training,
-    plus the target column 'poverty_ratio'.
+    plus the target column 'poverty_ratio'. This is a manual bulk path;
+    see /data for the endpoint that retrains automatically as new
+    observations arrive.
     """
-    global model, scaler   # replace the in-memory model with the retrained one
-
-    # Only accept CSV files
     if not file.filename.endswith('.csv'):
         raise HTTPException(
             status_code=400, detail="Please upload a .csv file.")
@@ -179,40 +216,53 @@ async def retrain(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=400, detail=f"Could not read CSV: {str(e)}")
 
-    # Check the required columns are present
-    required = feature_names + ['poverty_ratio']
-    missing = [c for c in required if c not in new_df.columns]
-    if missing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"CSV is missing required columns: {missing}"
+    result = retrain_model(new_df)
+    return {"message": "Model retrained successfully.", **result}
+
+
+class DataIngestInput(PredictionInput):
+    poverty_ratio: float = Field(..., ge=0, le=100,
+                                 description="Actual observed poverty headcount ratio (%)")
+
+
+class DataIngestOutput(BaseModel):
+    message: str
+    buffered_rows: int
+    retrain_triggered: bool
+    new_rmse: float | None = None
+
+
+@app.post("/data", response_model=DataIngestOutput)
+def ingest_data(data: DataIngestInput):
+    """
+    Submit one new labeled observation (the same inputs as /predict, plus
+    the actual poverty_ratio). Rows accumulate in a buffer on disk; once
+    RETRAIN_THRESHOLD rows have arrived the model retrains automatically
+    and the buffer clears, with no manual /retrain call needed.
+    """
+    row = build_feature_dict(data)
+    row['poverty_ratio'] = data.poverty_ratio
+    row_df = pd.DataFrame([row], columns=feature_names + ['poverty_ratio'])
+
+    file_exists = os.path.exists(BUFFER_PATH)
+    row_df.to_csv(BUFFER_PATH, mode='a', header=not file_exists, index=False)
+
+    buffer_df = pd.read_csv(BUFFER_PATH)
+    buffered_rows = len(buffer_df)
+
+    if buffered_rows >= RETRAIN_THRESHOLD:
+        result = retrain_model(buffer_df)
+        os.remove(BUFFER_PATH)  # consumed; next row starts a fresh buffer
+        return DataIngestOutput(
+            message=f"Buffer reached {RETRAIN_THRESHOLD} rows; model retrained automatically.",
+            buffered_rows=0,
+            retrain_triggered=True,
+            new_rmse=result["new_rmse"],
         )
 
-    # Prepare data
-    X = new_df[feature_names]
-    y = new_df['poverty_ratio']
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+    return DataIngestOutput(
+        message="Row added to the retraining buffer.",
+        buffered_rows=buffered_rows,
+        retrain_triggered=False,
     )
-
-    # Refit scaler + model on the new data
-    new_scaler = StandardScaler().fit(X_train)
-    new_model = RandomForestRegressor(random_state=42)
-    new_model.fit(new_scaler.transform(X_train), y_train)
-
-    # Evaluate
-    preds = new_model.predict(new_scaler.transform(X_test))
-    new_rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
-
-    # Swap in the new model and persist to disk
-    model = new_model
-    scaler = new_scaler
-    joblib.dump(model, os.path.join(BASE_DIR, 'best_model.pkl'))
-    joblib.dump(scaler, os.path.join(BASE_DIR, 'scaler.pkl'))
-
-    return {
-        "message": "Model retrained successfully.",
-        "rows_used": len(new_df),
-        "new_rmse": round(new_rmse, 3)
-    }
 
