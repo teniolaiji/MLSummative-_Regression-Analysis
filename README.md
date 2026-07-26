@@ -14,7 +14,7 @@ Knowing what causes poverty is essential to effective anti-poverty policy, yet, 
 
 ## Video Demo
 
-_https://youtu.be/8G7aTfCaep4?si=T8yq6QrFQwLRBv0j_
+_https://youtu.be/2eNmh1wjlL4?si=xG96xwDmxso1JvZO_
 
 ### Data preparation
 
